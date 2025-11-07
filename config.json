@@ -9,7 +9,7 @@
     ],
     "Proxy_key": "Host",
     "Udp_flag": "httpUDP",
-    "Encrypt_password": "change-this-to-secure-password",
+    "Encrypt_password": "12332100",
     "Pid_path": "/tmp/cns.pid",
     "Tcp_timeout": 600,
     "Udp_timeout": 30,

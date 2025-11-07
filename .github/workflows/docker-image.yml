@@ -16,6 +16,25 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Initialize Go module if missing
+      run: |
+        if [ ! -f "go.mod" ]; then
+          go mod init CNS
+          echo "go.mod created"
+        else
+          echo "go.mod already exists"
+        fi
+
+    - name: Generate go.sum
+      run: |
+        go mod tidy
+        echo "go.sum generated/updated"
+
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
 

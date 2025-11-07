@@ -1,4 +1,4 @@
-name: Build Functional CNS Server
+name: Build CNS Docker Image
 
 on:
   workflow_dispatch:
@@ -7,6 +7,10 @@ on:
         description: 'Version tag'
         required: true
         default: 'latest'
+      cns_version:
+        description: 'CNS source version'
+        required: true
+        default: 'v0.4.2'
 
 jobs:
   build:
@@ -37,18 +41,20 @@ jobs:
         push: true
         tags: |
           ghcr.io/goyo123321/cns:${{ github.event.inputs.version_tag }}
+          ghcr.io/goyo123321/cns:${{ github.event.inputs.cns_version }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
         platforms: linux/amd64
 
     - name: Build report
       run: |
-        echo "## Functional CNS Server Built Successfully" >> $GITHUB_STEP_SUMMARY
+        echo "## CNS Docker Image Built Successfully" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Image:** \`ghcr.io/goyo123321/cns:${{ github.event.inputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**CNS Version:** ${{ github.event.inputs.cns_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Features:**" >> $GITHUB_STEP_SUMMARY
-        echo "- HTTP server on port 8000" >> $GITHUB_STEP_SUMMARY
-        echo "- Health check endpoint" >> $GITHUB_STEP_SUMMARY
-        echo "- Status endpoint" >> $GITHUB_STEP_SUMMARY
         echo "- Configurable via environment variables" >> $GITHUB_STEP_SUMMARY
+        echo "- Health checks" >> $GITHUB_STEP_SUMMARY
+        echo "- Non-root user execution" >> $GITHUB_STEP_SUMMARY

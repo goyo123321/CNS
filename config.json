@@ -1,16 +1,19 @@
 {
-	"Tcp_timeout": 300,
-	"Udp_timeout": 30,
-	"Listen_addr": [":1254"],
-	"Keep_alive": 60,
-	"proxy_key": "Meng",
-	"encrypt_password": "666",
-	"Enable_dns_tcpOverUdp": true,
-	"Enable_httpDNS": true,
-	"Enable_TFO": true, 
-	"Tls": {
-		"listen_addr": [":8978"],
-		"AutoCertHosts": ["m.baidu.com", "yaohuo.me", "mymy.ip"]
-	}
+    "Tls": {
+        "Listen_addr": [],
+        "Certificate_path": "",
+        "Key_path": ""
+    },
+    "Listen_addr": [
+        ":8000"
+    ],
+    "Proxy_key": "Host",
+    "Udp_flag": "httpUDP",
+    "Encrypt_password": "change-this-to-secure-password",
+    "Pid_path": "/tmp/cns.pid",
+    "Tcp_timeout": 600,
+    "Udp_timeout": 30,
+    "Enable_dns_tcpOverUdp": false,
+    "Enable_httpDNS": true,
+    "Enable_TFO": false
 }
-

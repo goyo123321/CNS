@@ -1,4 +1,4 @@
-name: Build CNS Docker Image
+name: Build CNS Docker Image with Password Support
 
 on:
   workflow_dispatch:
@@ -7,10 +7,6 @@ on:
         description: 'Version tag'
         required: true
         default: 'latest'
-      cns_version:
-        description: 'CNS source version'
-        required: true
-        default: 'v0.4.2'
 
 jobs:
   build:
@@ -41,20 +37,31 @@ jobs:
         push: true
         tags: |
           ghcr.io/goyo123321/cns:${{ github.event.inputs.version_tag }}
-          ghcr.io/goyo123321/cns:${{ github.event.inputs.cns_version }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
         platforms: linux/amd64
 
     - name: Build report
       run: |
-        echo "## CNS Docker Image Built Successfully" >> $GITHUB_STEP_SUMMARY
+        echo "## CNS Docker Image with Password Support Built Successfully" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Image:** \`ghcr.io/goyo123321/cns:${{ github.event.inputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**CNS Version:** ${{ github.event.inputs.cns_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Supported Environment Variables:**" >> $GITHUB_STEP_SUMMARY
+        echo "- \`CNS_PORT\`: Server port (default: 8000)" >> $GITHUB_STEP_SUMMARY
+        echo "- \`CNS_TLS_PORT\`: TLS port (optional)" >> $GITHUB_STEP_SUMMARY
+        echo "- \`CNS_ENCRYPT_PASSWORD\`: Encryption password (optional)" >> $GITHUB_STEP_SUMMARY
+        echo "- \`CNS_UDP_FLAG\`: UDP flag (default: httpUDP)" >> $GITHUB_STEP_SUMMARY
+        echo "- \`CNS_PROXY_KEY\`: Proxy header (default: Host)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Features:**" >> $GITHUB_STEP_SUMMARY
-        echo "- Configurable via environment variables" >> $GITHUB_STEP_SUMMARY
-        echo "- Health checks" >> $GITHUB_STEP_SUMMARY
-        echo "- Non-root user execution" >> $GITHUB_STEP_SUMMARY
+        echo "**Usage Examples:**" >> $GITHUB_STEP_SUMMARY
+        echo '```bash' >> $GITHUB_STEP_SUMMARY
+        echo '# Basic usage' >> $GITHUB_STEP_SUMMARY
+        echo 'docker run -d -p 8000:8000 ghcr.io/goyo123321/cns:latest' >> $GITHUB_STEP_SUMMARY
+        echo '' >> $GITHUB_STEP_SUMMARY
+        echo '# With encryption' >> $GITHUB_STEP_SUMMARY
+        echo 'docker run -d -p 8000:8000 -e CNS_ENCRYPT_PASSWORD="my-secret" ghcr.io/goyo123321/cns:latest' >> $GITHUB_STEP_SUMMARY
+        echo '' >> $GITHUB_STEP_SUMMARY
+        echo '# With TLS' >> $GITHUB_STEP_SUMMARY
+        echo 'docker run -d -p 8000:8000 -p 8443:8443 -e CNS_TLS_PORT=8443 ghcr.io/goyo123321/cns:latest' >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY

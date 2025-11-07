@@ -1,19 +1,22 @@
 # 构建阶段
 FROM golang:1.21-alpine AS builder
 
+# 定义构建参数
+ARG CNS_VERSION=v0.4.2
+
 WORKDIR /app
 
 # 安装 wget 用于下载文件
 RUN apk add --no-cache wget
 
-# 下载完整的 CNS 项目文件
-RUN wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/v0.4.2/cns.go && \
-    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/v0.4.2/network_tunnel.go && \
-    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/v0.4.2/tls_server.go && \
-    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/v0.4.2/utils.go && \
-    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/v0.4.2/crypt.go && \
-    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/v0.4.2/go.mod && \
-    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/v0.4.2/go.sum
+# 下载完整的 CNS 项目文件（使用构建参数）
+RUN wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/${CNS_VERSION}/cns.go && \
+    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/${CNS_VERSION}/network_tunnel.go && \
+    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/${CNS_VERSION}/tls_server.go && \
+    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/${CNS_VERSION}/utils.go && \
+    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/${CNS_VERSION}/crypt.go && \
+    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/${CNS_VERSION}/go.mod && \
+    wget -q https://raw.githubusercontent.com/mmmdbybyd/CNS/${CNS_VERSION}/go.sum
 
 # 复制本地配置文件
 COPY config.json ./
@@ -48,4 +51,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD netstat -ltn | grep -q 8000 || exit 1
 
 ENTRYPOINT ["./cns"]
-CMD ["-json", "config.json"
+CMD ["-json", "config.json"]

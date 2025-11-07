@@ -26,7 +26,7 @@ RUN adduser -D -u 1000 appuser
 USER appuser
 
 # 暴露端口
-EXPOSE 8080
+EXPOSE 8000
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s \

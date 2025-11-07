@@ -3,11 +3,13 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
 
 env:
   REGISTRY: ghcr.io
-  # 将 CNS 改为小写 cns
-  IMAGE_NAME: ${{ github.repository | lower }}
+  # 使用 format() 函数替代管道过滤器
+  IMAGE_NAME: goyo123321/cns
 
 jobs:
   build:
@@ -35,7 +37,7 @@ jobs:
       with:
         context: .
         file: ./Dockerfile
-        push: true
+        push: ${{ github.event_name != 'pull_request' }}
         tags: |
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

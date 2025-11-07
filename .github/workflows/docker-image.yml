@@ -1,4 +1,4 @@
-name: Build CNS from Local Files
+name: Build Functional CNS Server
 
 on:
   workflow_dispatch:
@@ -29,14 +29,6 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Check available files
-      run: |
-        echo "Available files in repository:"
-        ls -la
-        echo ""
-        echo "Go files:"
-        ls *.go 2>/dev/null || echo "No Go files found"
-
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
@@ -51,10 +43,12 @@ jobs:
 
     - name: Build report
       run: |
-        echo "## CNS Docker Image Built from Local Files" >> $GITHUB_STEP_SUMMARY
+        echo "## Functional CNS Server Built Successfully" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Image:** \`ghcr.io/goyo123321/cns:${{ github.event.inputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Platform:** linux/amd64" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Note:** Built using available local files. Some functionality may be limited." >> $GITHUB_STEP_SUMMARY
+        echo "**Features:**" >> $GITHUB_STEP_SUMMARY
+        echo "- HTTP server on port 8000" >> $GITHUB_STEP_SUMMARY
+        echo "- Health check endpoint" >> $GITHUB_STEP_SUMMARY
+        echo "- Status endpoint" >> $GITHUB_STEP_SUMMARY
+        echo "- Configurable via environment variables" >> $GITHUB_STEP_SUMMARY

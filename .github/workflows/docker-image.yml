@@ -3,12 +3,10 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [ "master", "main" ]
-  pull_request:
-    branches: [ "master", "main" ]
 
 env:
   REGISTRY: ghcr.io
-  # 使用小写转换确保镜像名称合法
+  # 将 CNS 改为小写 cns
   IMAGE_NAME: ${{ github.repository | lower }}
 
 jobs:
@@ -37,7 +35,7 @@ jobs:
       with:
         context: .
         file: ./Dockerfile
-        push: ${{ github.event_name != 'pull_request' }}
+        push: true
         tags: |
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

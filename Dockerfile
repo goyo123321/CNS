@@ -1,38 +1,36 @@
-# 使用官方 Python 运行时作为基础镜像
-FROM python:3.11-slim
+# 构建阶段
+FROM golang:1.21-alpine AS builder
 
-# 设置工作目录
 WORKDIR /app
 
-# 设置环境变量
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV DEBUG=False
+# 下载依赖
+COPY go.mod go.sum ./
+RUN go mod download
 
-# 安装系统依赖
-RUN apt-get update && apt-get install -y \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# 复制依赖文件
-COPY requirements.txt .
-
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 复制项目代码
+# 复制源代码并构建
 COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
-# 创建非root用户（安全最佳实践）
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# 运行阶段
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
+
+# 从构建阶段复制二进制文件
+COPY --from=builder /app/main .
+
+# 创建非root用户
+RUN adduser -D -u 1000 appuser
 USER appuser
 
-# 暴露端口（根据您的应用调整）
-EXPOSE 8000
+# 暴露端口
+EXPOSE 8080
 
-# 定义健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
-# 启动命令（根据您的应用调整）
-CMD ["python", "app.py"]
+# 启动应用
+CMD ["./main"]

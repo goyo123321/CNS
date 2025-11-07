@@ -1,0 +1,4 @@
+# 示例 requirements.txt - 根据您的实际依赖调整
+flask>=2.3.0
+gunicorn>=21.0.0
+requests>=2.28.0

@@ -1,9 +1,15 @@
-name: Build and Push Multi-arch Go Image
+name: Build and Push Multi-arch CNS Image
 
 on:
   push:
     branches: [ "master", "main" ]
     tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-multi-arch:
@@ -15,25 +21,6 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
-
-    - name: Initialize Go module if missing
-      run: |
-        if [ ! -f "go.mod" ]; then
-          go mod init CNS
-          echo "go.mod created"
-        else
-          echo "go.mod already exists"
-        fi
-
-    - name: Generate go.sum
-      run: |
-        go mod tidy
-        echo "go.sum generated/updated"
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -47,7 +34,7 @@ jobs:
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v3
       with:
-        registry: ghcr.io
+        registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -55,22 +42,46 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ghcr.io/goyo123321/gocns
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
           type=ref,event=branch
           type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
-          type=sha
+          type=sha,prefix=
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Verify Go files
+      run: |
+        echo "Checking required Go files..."
+        required_files=("cns.go" "network_tunnel.go" "tls_server.go" "utils.go" "crypt.go")
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "❌ Missing required file: $file"
+            exit 1
+          else
+            echo "✅ Found: $file"
+          fi
+        done
+        echo "All required files present!"
 
     - name: Build and push multi-arch image
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ./Dockerfile
-        push: true
+        push: ${{ github.event_name != 'pull_request' }}
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=${{ github.event_name != 'pull_request' }}
+
+    - name: Image size report
+      if: github.event_name != 'pull_request'
+      run: |
+        echo "Image pushed to:"
+        echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+        echo "Available tags:"
+        echo "${{ steps.meta.outputs.tags }}"

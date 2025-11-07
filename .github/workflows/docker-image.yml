@@ -1,28 +1,16 @@
-name: Build Multi-arch CNS Docker Image (Manual)
+name: Build Multi-arch CNS with Remote Source
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Version tag (e.g., v1.0.0)'
+        description: 'Version tag'
         required: true
         default: 'latest'
-      platforms:
-        description: 'Target platforms'
+      cns_version:
+        description: 'CNS source version (git tag)'
         required: true
-        default: 'linux/amd64,linux/arm64'
-        type: choice
-        options:
-        - linux/amd64
-        - linux/arm64
-        - linux/arm/v7
-        - linux/amd64,linux/arm64
-        - linux/amd64,linux/arm64,linux/arm/v7
-      push_to_registry:
-        description: 'Push to GitHub Container Registry'
-        required: true
-        default: true
-        type: boolean
+        default: 'v0.4.2'
 
 env:
   REGISTRY: ghcr.io
@@ -39,12 +27,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Display workflow inputs
-      run: |
-        echo "Version Tag: ${{ github.event.inputs.version_tag }}"
-        echo "Platforms: ${{ github.event.inputs.platforms }}"
-        echo "Push to Registry: ${{ github.event.inputs.push_to_registry }}"
-
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
 
@@ -55,90 +37,33 @@ jobs:
           image=moby/buildkit:buildx-stable-1
 
     - name: Log in to GitHub Container Registry
-      if: ${{ github.event.inputs.push_to_registry == 'true' }}
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Verify Go source files
-      id: verify-files
-      run: |
-        echo "Verifying required Go source files..."
-        required_files=("cns.go" "network_tunnel.go" "tls_server.go" "utils.go" "crypt.go")
-        missing_files=()
-        
-        for file in "${required_files[@]}"; do
-          if [ ! -f "$file" ]; then
-            missing_files+=("$file")
-            echo "❌ Missing: $file"
-          else
-            echo "✅ Found: $file"
-          fi
-        done
-        
-        if [ ${#missing_files[@]} -eq 0 ]; then
-          echo "all_files_present=true" >> $GITHUB_OUTPUT
-          echo "✅ All required Go files are present!"
-        else
-          echo "all_files_present=false" >> $GITHUB_OUTPUT
-          echo "❌ Missing files: ${missing_files[*]}"
-          exit 1
-        fi
-
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=raw,value=${{ github.event.inputs.version_tag }}
-          type=sha,prefix=
-
-    - name: Build multi-arch image
+    - name: Build and push multi-arch image
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ./Dockerfile
-        platforms: ${{ github.event.inputs.platforms }}
-        push: ${{ github.event.inputs.push_to_registry == 'true' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        push: true
+        platforms: linux/amd64,linux/arm64,linux/arm/v7
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.version_tag }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:cns-${{ github.event.inputs.cns_version }}
+        build-args: |
+          CNS_VERSION=${{ github.event.inputs.cns_version }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        outputs: ${{ github.event.inputs.push_to_registry == 'false' && 'type=docker' || '' }}
 
-    - name: Generate build report
-      if: always()
+    - name: Build report
       run: |
-        echo "## Build Report" >> $GITHUB_STEP_SUMMARY
+        echo "## CNS Docker Image Built Successfully" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Image:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Input Parameters:**" >> $GITHUB_STEP_SUMMARY
-        echo "- Version Tag: ${{ github.event.inputs.version_tag }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Platforms: ${{ github.event.inputs.platforms }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Push to Registry: ${{ github.event.inputs.push_to_registry }}" >> $GITHUB_STEP_SUMMARY
+        echo "**CNS Source Version:** ${{ github.event.inputs.cns_version }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        
-        if [ "${{ job.status }}" == "success" ]; then
-          if [ "${{ github.event.inputs.push_to_registry }}" == "true" ]; then
-            echo "**Built Images:**" >> $GITHUB_STEP_SUMMARY
-            echo "- \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- Platforms: ${{ github.event.inputs.platforms }}" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "**Build completed locally** (not pushed to registry)" >> $GITHUB_STEP_SUMMARY
-          fi
-        else
-          echo "**Build failed** - Check logs for details" >> $GITHUB_STEP_SUMMARY
-        fi
-
-    - name: Upload build logs
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-logs
-        path: |
-          /tmp/build-*
-        retention-days: 7
+        echo "**Platforms:** linux/amd64, linux/arm64, linux/arm/v7" >> $GITHUB_STEP_SUMMARY
